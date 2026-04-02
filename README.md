@@ -10,7 +10,6 @@ This document describes external merchant-facing endpoints.
 - [Update Order](#update-order)
 - [Change Request](#change-request)
 - [Status](#status)
-  - [What `deliveryStatus` and `orderStatus` mean](#what-deliverystatus-and-orderstatus-mean)
 
 ---
 
