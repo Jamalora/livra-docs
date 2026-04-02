@@ -2,6 +2,18 @@
 
 This document describes external merchant-facing endpoints.
 
+## Outline
+
+- [Shared authentication headers](#shared-authentication-headers)
+  - [How to generate `x-signature`](#how-to-generate-x-signature)
+- [Create Order](#create-order)
+- [Update Order](#update-order)
+- [Change Request](#change-request)
+- [Status](#status)
+  - [What `deliveryStatus` and `orderStatus` mean](#what-deliverystatus-and-orderstatus-mean)
+
+---
+
 ## Shared authentication headers
 
 All routes in this document use the same auth model unless a section says otherwise.
