@@ -6,6 +6,7 @@ This document describes external merchant-facing endpoints.
 
 - [Shared authentication headers](#shared-authentication-headers)
   - [How to generate `x-signature`](#how-to-generate-x-signature)
+- [Location fields (zone, city, state)](#location-fields-zone-city-state)
 - [Create Order](#create-order)
 - [Update Order](#update-order)
 - [Change Request](#change-request)
@@ -90,6 +91,10 @@ $signature = hash_hmac("sha256", $rawBody, $apiSecret);
 
 If you have any issues generating `x-signature`, contact us at `ops@mofavo.com`.
 
+## Location fields (zone, city, state)
+
+Whenever you supply **`zone`**, **`city`**, or **`state`**—on **Create Order**, **Update Order**, or inside an **`ADDRESS_CHANGE`** in **Change Request**—use values from Livra’s Tunisia reference dataset shipped with this documentation ([`tn.json`](./tn.json) in the repository). Each entry has `zone`, `city`, and `admin_name`; send **`admin_name` as `state`**.
+
 ## Create Order
 
 Use this when a **new shipment** should be registered with Livra from your app (for example right after checkout). Merchant and partner context come from the bearer token; you supply recipient and parcel details.
@@ -127,6 +132,7 @@ Use this when a **new shipment** should be registered with Livra from your app (
 - `amount` must be non-negative.
 - `allowOpen`, `isExchange`, `isFragile` must be booleans.
 - Orders created here are stored with source `external_api`.
+- **Location:** See [Location fields (zone, city, state)](#location-fields-zone-city-state).
 
 ### Success
 
@@ -179,6 +185,7 @@ Patch-style payload. Only `orderId` is required.
 - `orderId` must exist.
 - Existing order must be in `readyForPickUp`.
 - Missing fields keep existing values.
+- If you send `zone`, `city`, or `state`, follow [Location fields (zone, city, state)](#location-fields-zone-city-state).
 
 ### Success
 
@@ -231,6 +238,7 @@ Use this when the parcel is already **in the network** (in a depot or in transit
   - `ADDRESS_CHANGE`
   - `ALLOW_OPEN_CHANGE`
   - `DELIVERY_DATE_CHANGE`
+- For **`ADDRESS_CHANGE`**, any `zone`, `city`, or `state` you include in the old/new address payload must follow [Location fields (zone, city, state)](#location-fields-zone-city-state).
 - Order must be in `inDepot` or `inTransit`.
 - Exchange-completed orders are blocked.
 
