@@ -314,6 +314,10 @@ Together they answer two different questions: **whether the “delivery outcome�
 - **`inDepot`** — the parcel is held at a depot (before first-mile pickup, between legs, or after a customer decline).
 - **`inTransitToCustomer`** — the parcel is on the road heading toward the customer.
 - **`inTransitToMerchant`** — the parcel is on the road heading back to the merchant (return or post-exchange leg).
+- **`delivered`** — the order has been delivered to the customer.
+- **`returned`** — the order has been returned to the merchant.
+- **`exchange-returned`** — the exchange return leg has been completed back to the merchant.
+- **`exchange-completed`** — the exchange flow has been completed with the customer.
 - **`cancelled`** — the order has been voided (e.g. a dummy order created as part of an exchange flow).
 
 So you can have combinations such as:
