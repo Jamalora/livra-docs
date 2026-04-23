@@ -308,7 +308,15 @@ Together they answer two different questions: **whether the “delivery outcome�
 - **`delivered`** — that outcome is satisfied in our model (for example, the exchange with the customer has already happened and the parcel leg you care about is treated as delivered, even if another leg—such as back to the merchant—is still moving).
 - **`cancelled`** — the outcome is no longer a normal forward delivery (for example, the customer refused delivery and the parcel is being handled as a return or stop).
 
-**`orderStatus`** describes **where the order sits in the operational pipeline**—in a depot, on the road, and **which direction** it is heading when it is in transit (toward the customer vs toward the merchant). So you can have combinations such as:
+**`orderStatus`** describes **where the order sits in the operational pipeline**—in a depot, on the road, and **which direction** it is heading when it is in transit (toward the customer vs toward the merchant). Possible values:
+
+- **`readyForPickUp`** — the order has been created and is waiting to be collected by a courier.
+- **`inDepot`** — the parcel is held at a depot (before first-mile pickup, between legs, or after a customer decline).
+- **`inTransitToCustomer`** — the parcel is on the road heading toward the customer.
+- **`inTransitToMerchant`** — the parcel is on the road heading back to the merchant (return or post-exchange leg).
+- **`cancelled`** — the order has been voided (e.g. a dummy order created as part of an exchange flow).
+
+So you can have combinations such as:
 
 - Exchange already completed with the customer, parcel **now traveling back to the merchant**: `deliveryStatus` can be **`delivered`** while `orderStatus` reflects the current leg, e.g. **`inTransitToMerchant`**.
 - Parcel **waiting in a depot** before final delivery to the customer: `deliveryStatus` **`pending`**, `orderStatus` **`inDepot`**.
