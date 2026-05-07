@@ -309,28 +309,28 @@ Together they answer two different questions: whether the **delivery outcome** f
 
 High-level outcome from a delivery perspective:
 
-| Value | Meaning |
-| --- | --- |
-| `pending` | The order is still in play — not finally delivered to the end recipient in the sense we track here, and not written off as a customer decline / return-to-merchant flow. |
+| Value       | Meaning                                                                                                                                                                                                                                    |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `pending`   | The order is still in play — not finally delivered to the end recipient in the sense we track here, and not written off as a customer decline / return-to-merchant flow.                                                                   |
 | `delivered` | That outcome is satisfied in our model (for example, the exchange with the customer has already happened and the parcel leg you care about is treated as delivered, even if another leg — such as back to the merchant — is still moving). |
-| `cancelled` | The outcome is no longer a normal forward delivery (for example, the customer refused delivery and the parcel is being handled as a return or stop). |
+| `cancelled` | The outcome is no longer a normal forward delivery (for example, the customer refused delivery and the parcel is being handled as a return or stop).                                                                                       |
 
 #### `orderStatus`
 
 Where the order sits in the **operational pipeline** — in a depot, on the road, and which direction it is heading when in transit (toward the customer vs toward the merchant):
 
-| Value | Meaning |
-| --- | --- |
-| `readyForPickUp` | The order has been created and is waiting to be collected by a courier. |
-| `inDepot` | The parcel is held at a depot (before first-mile pickup, between legs, or after a customer decline). |
-| `inTransitToCustomer` | The parcel is on the road heading toward the customer. |
-| `inTransitToMerchant` | The parcel is on the road heading back to the merchant (return or post-exchange leg). |
-| `delivered` | The order has been delivered to the customer. |
-| `returned` | The order has been returned to the merchant. |
-| `exchange-returned` | The exchange was declined by the customer, and the parcel sent for the exchange has returned to the merchant. |
-| `exchange-completed` | The exchange happened with the customer, and the parcel collected from the customer has returned to the merchant. |
-| `cancelled` | The order has been voided (e.g. a dummy order created as part of an exchange flow). |
-| _(other values)_ | New or internal statuses — treat unknown values gracefully. |
+| Value                 | Meaning                                                                                                           |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `readyForPickUp`      | The order has been created and is waiting to be collected by a courier.                                           |
+| `inDepot`             | The parcel is held at a depot (before first-mile pickup, between legs, or after a customer decline).              |
+| `inTransitToCustomer` | The parcel is on the road heading toward the customer.                                                            |
+| `inTransitToMerchant` | The parcel is on the road heading back to the merchant (return or post-exchange leg).                             |
+| `delivered`           | The order has been delivered to the customer.                                                                     |
+| `returned`            | The order has been returned to the merchant.                                                                      |
+| `exchange-returned`   | The exchange was declined by the customer, and the parcel sent for the exchange has returned to the merchant.     |
+| `exchange-completed`  | The exchange happened with the customer, and the parcel collected from the customer has returned to the merchant. |
+| `cancelled`           | The order has been voided (e.g. a dummy order created as part of an exchange flow).                               |
+| _(other values)_      | New or internal statuses — treat unknown values gracefully.                                                       |
 
 #### How the two combine
 
@@ -352,9 +352,7 @@ Results are returned in the **same order** as `orderIds`, excluding any ids that
 
 ## Order status webhooks
 
-When you include **`callback_link`** on [Create Order](#create-order), Livra calls that URL with an outbound webhook on every meaningful change to the order.
-
-The JSON body matches the [Status](#status) **200** response (`ok`, `orders` with `id`, `deliveryStatus`, `orderStatus`) and includes an extra **`timestamp`** (see below). See [What `deliveryStatus` and `orderStatus` mean](#what-deliverystatus-and-orderstatus-mean) for semantics.
+When you include **`callback_link`** on [create order](#create-order), Livra calls that URL with an outbound webhook on every meaningful change to the order.
 
 ### Request format
 
@@ -375,13 +373,55 @@ X-Webhook-Signature: <hmac-hex>
     {
       "id": 1234,
       "deliveryStatus": "pending",
-      "orderStatus": "inTransitToCustomer"
+      "orderStatus": "inTransitToCustomer",
+      "comment": null
     }
   ]
 }
 ```
 
 `timestamp` is when the event was detected on the platform, in UTC ISO 8601. On retries the timestamp reflects the **original event time**, not the retry time — use it to understand when something changed, not when you received the notification.
+
+Each entry in **`orders`** can include **`comment`**: driver last-mile input for that specific order update. When relevant it is one of `unreachable`, `declined`, or `rescheduled`. Otherwise it is **`null`** (the event update for that order was not triggered by driver input).
+
+### What `deliveryStatus` and `orderStatus` mean
+
+Together they answer two different questions: whether the **delivery outcome** for this order is still open, completed, or void, and **where the shipment is** in its journey right now (depot, on the road, and which direction when in transit).
+
+#### `deliveryStatus`
+
+High-level outcome from a delivery perspective:
+
+| Value       | Meaning                                                                                                                                                                                                                                    |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `pending`   | The order is still in play — not finally delivered to the end recipient in the sense we track here, and not written off as a customer decline / return-to-merchant flow.                                                                   |
+| `delivered` | That outcome is satisfied in our model (for example, the exchange with the customer has already happened and the parcel leg you care about is treated as delivered, even if another leg — such as back to the merchant — is still moving). |
+| `cancelled` | The outcome is no longer a normal forward delivery (for example, the customer refused delivery and the parcel is being handled as a return or stop).                                                                                       |
+
+#### `orderStatus`
+
+Where the order sits in the **operational pipeline** — in a depot, on the road, and which direction it is heading when in transit (toward the customer vs toward the merchant):
+
+| Value                 | Meaning                                                                                                           |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `readyForPickUp`      | The order has been created and is waiting to be collected by a courier.                                           |
+| `inDepot`             | The parcel is held at a depot (before first-mile pickup, between legs, or after a customer decline).              |
+| `inTransitToCustomer` | The parcel is on the road heading toward the customer.                                                            |
+| `inTransitToMerchant` | The parcel is on the road heading back to the merchant (return or post-exchange leg).                             |
+| `delivered`           | The order has been delivered to the customer.                                                                     |
+| `returned`            | The order has been returned to the merchant.                                                                      |
+| `exchange-returned`   | The exchange was declined by the customer, and the parcel sent for the exchange has returned to the merchant.     |
+| `exchange-completed`  | The exchange happened with the customer, and the parcel collected from the customer has returned to the merchant. |
+| `cancelled`           | The order has been voided (e.g. a dummy order created as part of an exchange flow).                               |
+| _(other values)_      | New or internal statuses — treat unknown values gracefully.                                                       |
+
+#### How the two combine
+
+Examples of valid combinations:
+
+- **Exchange already completed with the customer, parcel now traveling back to the merchant:** `deliveryStatus` can be `delivered` while `orderStatus` reflects the current leg, e.g. `inTransitToMerchant`.
+- **Parcel waiting in a depot before final delivery to the customer:** `deliveryStatus` `pending`, `orderStatus` `inDepot`.
+- **Customer declined delivery and the parcel is held in a depot:** `deliveryStatus` `cancelled`, `orderStatus` may still be `inDepot` — location/stage in the pipeline can differ even when the delivery outcome is cancelled.
 
 ### Verifying signatures
 
@@ -394,24 +434,21 @@ Always verify this header before processing the payload.
 **Node.js**
 
 ```js
-const crypto = require('crypto');
+const crypto = require("crypto");
 
 function verifySignature(secret, rawBody, signature) {
   const expected = crypto
-    .createHmac('sha256', secret)
+    .createHmac("sha256", secret)
     .update(rawBody)
-    .digest('hex');
-  return crypto.timingSafeEqual(
-    Buffer.from(expected),
-    Buffer.from(signature)
-  );
+    .digest("hex");
+  return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signature));
 }
 
 // Express example
-app.post('/webhook', express.raw({ type: 'application/json' }), (req, res) => {
-  const sig = req.headers['x-webhook-signature'];
+app.post("/webhook", express.raw({ type: "application/json" }), (req, res) => {
+  const sig = req.headers["x-webhook-signature"];
   if (!verifySignature(process.env.WEBHOOK_SECRET, req.body, sig)) {
-    return res.status(401).send('Invalid signature');
+    return res.status(401).send("Invalid signature");
   }
   const event = JSON.parse(req.body);
   // process event...
@@ -463,12 +500,12 @@ If your endpoint returns a non-2xx status or does not respond within **10 second
 Failed deliveries are retried with exponential backoff:
 
 | Attempt | Delay before retry |
-| --- | --- |
-| 1 | 30 seconds |
-| 2 | 5 minutes |
-| 3 | 30 minutes |
-| 4 | 2 hours |
-| 5 | 8 hours |
+| ------- | ------------------ |
+| 1       | 30 seconds         |
+| 2       | 5 minutes          |
+| 3       | 30 minutes         |
+| 4       | 2 hours            |
+| 5       | 8 hours            |
 
 After 5 failed attempts the delivery is marked permanently failed and no further retries are made. The platform team can manually re-queue a delivery on request.
 
@@ -482,7 +519,7 @@ A quick way to simulate a webhook delivery locally:
 
 ```bash
 SECRET="your-secret"
-BODY='{"ok":true,"timestamp":"2026-05-05T11:23:00Z","orders":[{"id":1234,"deliveryStatus":"pending","orderStatus":"inTransitToCustomer"}]}'
+BODY='{"ok":true,"timestamp":"2026-05-05T11:23:00Z","orders":[{"id":1234,"deliveryStatus":"pending","orderStatus":"inTransitToCustomer","comment":null}]}'
 SIG=$(echo -n "$BODY" | openssl dgst -sha256 -hmac "$SECRET" | awk '{print $2}')
 
 curl -X POST https://your-endpoint.example.com/webhook \
