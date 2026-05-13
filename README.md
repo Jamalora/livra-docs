@@ -323,6 +323,7 @@ Where the order sits in the **operational pipeline** — in a depot, on the road
 | --------------------- | ----------------------------------------------------------------------------------------------------------------- |
 | `readyForPickUp`      | The order has been created and is waiting to be collected by a courier.                                           |
 | `inDepot`             | The parcel is held at a depot (before first-mile pickup, between legs, or after a customer decline).              |
+| `inTransitToDepot`    | The parcel is on the road heading toward an intermediate depot.                                                   |
 | `inTransitToCustomer` | The parcel is on the road heading toward the customer.                                                            |
 | `inTransitToMerchant` | The parcel is on the road heading back to the merchant (return or post-exchange leg).                             |
 | `delivered`           | The order has been delivered to the customer.                                                                     |
@@ -361,7 +362,26 @@ POST <your-callback-url>
 Content-Type: application/json
 X-Webhook-ID: <delivery-uuid>
 X-Webhook-Signature: <hmac-hex>
+X-Webhook-Version: 2
 ```
+
+`X-Webhook-Version` identifies the payload version. Use it to guard your parsing logic against future changes.
+
+### Events
+
+Webhooks fire on three categories of change:
+
+**Order events** — any meaningful change to the order itself (status, destination, position, delivery date).
+
+**Driver events** — a driver records a last-mile outcome. The `comment` field is set to one of:
+
+| `comment` | Meaning |
+| --- | --- |
+| `declined` | Recipient refused the delivery. |
+| `unreachable` | Driver could not reach the recipient. |
+| `rescheduled` | Delivery rescheduled to a later date. |
+
+**Invoice settlement** — the delivery partner settles the invoice for this order. The `settled` field is set to `true`. This fires once per order.
 
 ### Payload
 
@@ -374,7 +394,8 @@ X-Webhook-Signature: <hmac-hex>
       "id": 1234,
       "deliveryStatus": "pending",
       "orderStatus": "inTransitToCustomer",
-      "comment": null
+      "comment": null,
+      "settled": false
     }
   ]
 }
@@ -382,7 +403,9 @@ X-Webhook-Signature: <hmac-hex>
 
 `timestamp` is when the event was detected on the platform, in UTC ISO 8601. On retries the timestamp reflects the **original event time**, not the retry time — use it to understand when something changed, not when you received the notification.
 
-Each entry in **`orders`** can include **`comment`**: driver last-mile input for that specific order update. When relevant it is one of `unreachable`, `declined`, or `rescheduled`. Otherwise it is **`null`** (the event update for that order was not triggered by driver input).
+`comment` is `null` for order and invoice events. For driver events it is one of `unreachable`, `declined`, or `rescheduled`.
+
+`settled` is `false` for all events except invoice settlement, where it is `true`.
 
 ### What `deliveryStatus` and `orderStatus` mean
 
@@ -406,6 +429,7 @@ Where the order sits in the **operational pipeline** — in a depot, on the road
 | --------------------- | ----------------------------------------------------------------------------------------------------------------- |
 | `readyForPickUp`      | The order has been created and is waiting to be collected by a courier.                                           |
 | `inDepot`             | The parcel is held at a depot (before first-mile pickup, between legs, or after a customer decline).              |
+| `inTransitToDepot`    | The parcel is on the road heading toward an intermediate depot.                                                   |
 | `inTransitToCustomer` | The parcel is on the road heading toward the customer.                                                            |
 | `inTransitToMerchant` | The parcel is on the road heading back to the merchant (return or post-exchange leg).                             |
 | `delivered`           | The order has been delivered to the customer.                                                                     |
@@ -515,16 +539,32 @@ Each delivery has a unique UUID sent in the `X-Webhook-ID` header. Use this to d
 
 ### Testing your endpoint
 
-A quick way to simulate a webhook delivery locally:
+**Order / driver event**
 
 ```bash
 SECRET="your-secret"
-BODY='{"ok":true,"timestamp":"2026-05-05T11:23:00Z","orders":[{"id":1234,"deliveryStatus":"pending","orderStatus":"inTransitToCustomer","comment":null}]}'
+BODY='{"ok":true,"timestamp":"2026-05-05T11:23:00Z","orders":[{"id":1234,"deliveryStatus":"pending","orderStatus":"inTransitToCustomer","comment":null,"settled":false}]}'
 SIG=$(echo -n "$BODY" | openssl dgst -sha256 -hmac "$SECRET" | awk '{print $2}')
 
 curl -X POST https://your-endpoint.example.com/webhook \
   -H "Content-Type: application/json" \
   -H "X-Webhook-ID: test-$(uuidgen)" \
   -H "X-Webhook-Signature: $SIG" \
+  -H "X-Webhook-Version: 2" \
+  -d "$BODY"
+```
+
+**Invoice settlement**
+
+```bash
+SECRET="your-secret"
+BODY='{"ok":true,"timestamp":"2026-05-05T11:23:00Z","orders":[{"id":1234,"deliveryStatus":"delivered","orderStatus":"delivered","comment":null,"settled":true}]}'
+SIG=$(echo -n "$BODY" | openssl dgst -sha256 -hmac "$SECRET" | awk '{print $2}')
+
+curl -X POST https://your-endpoint.example.com/webhook \
+  -H "Content-Type: application/json" \
+  -H "X-Webhook-ID: test-$(uuidgen)" \
+  -H "X-Webhook-Signature: $SIG" \
+  -H "X-Webhook-Version: 2" \
   -d "$BODY"
 ```
