@@ -9,6 +9,7 @@ This document describes external merchant-facing endpoints.
 - [Location fields (zone, city, state)](#location-fields-zone-city-state)
 - [Create Order](#create-order)
 - [Update Order](#update-order)
+- [Order Hash](#order-hash)
 - [Change Request](#change-request)
 - [Status](#status)
 - [Order status webhooks](#order-status-webhooks)
@@ -139,7 +140,8 @@ Use this when a **new shipment** should be registered with Livra from your app (
 
 ### Success
 
-- **201**: `{ "orderId": <number> }`
+- **201**: `{ "orderId": <number>, "hash": "<string>" }`
+  - `hash` is the order-slip QR hash — see [Order Hash](#order-hash) for what it is and how to use it.
 
 ### Errors
 
@@ -192,7 +194,8 @@ Patch-style payload. Only `orderId` is required.
 
 ### Success
 
-- **200**: `{ "orderId": <number> }`
+- **200**: `{ "orderId": <number>, "hash": "<string>" }`
+  - `hash` is the **recomputed** order-slip QR hash after the update — see [Order Hash](#order-hash). Any slip printed with an older hash must be reprinted.
 
 ### Errors
 
@@ -203,6 +206,40 @@ Patch-style payload. Only `orderId` is required.
 - **403** one of:
   - `merchant_token_mismatch`
   - `partner_token_mismatch`
+- **401** missing/invalid app auth or bearer token
+- **500** internal error
+
+## Order Hash
+
+Use this to fetch the current **order-slip QR hash** for an order — for example right before printing (or reprinting) a delivery slip. The QR code on a slip must encode `"<orderId>#<hash>"` (the order id, a `#`, then the hash) to be accepted by depot scanners. The hash covers the order's content (recipient, products, amount, …), so it changes whenever the order changes; a slip carrying an outdated hash is rejected at scan time and must be reprinted with a fresh one.
+
+[Create Order](#create-order) and [Update Order](#update-order) already return the same `hash` in their responses; this endpoint is for when you need it again later for an existing order.
+
+- **URL:** `https://external-api.livra.tn/external_order_hash`
+- **Method:** `POST`
+- **Auth:** same as other external routes (`x-api-key`, `x-signature`, `Authorization: Bearer`)
+
+### Request body
+
+```json
+{
+  "orderId": 1234
+}
+```
+
+### Rules
+
+- `orderId` is required and must be a positive integer.
+- The order must belong to the **merchant** associated with the bearer token.
+
+### Success
+
+- **200**: `{ "orderId": <number>, "hash": "<string>" }`
+
+### Errors
+
+- **400** `order_not_found` or validation errors
+- **403** `merchant_token_mismatch` or `partner_token_mismatch`
 - **401** missing/invalid app auth or bearer token
 - **500** internal error
 
